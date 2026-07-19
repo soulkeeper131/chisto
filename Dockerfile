@@ -11,6 +11,7 @@ RUN npm ci
 COPY . .
 
 RUN mkdir -p /app/data
+RUN echo "Deploy: $(date +%s)" > /app/.build_id
 RUN npx drizzle-kit push
 
 RUN npm run build
