@@ -12,6 +12,7 @@ COPY . .
 
 RUN mkdir -p /app/data
 RUN echo "Deploy: $(date +%s)" > /app/.build_id
+RUN rm -rf .next
 RUN npx drizzle-kit push
 
 RUN npm run build
