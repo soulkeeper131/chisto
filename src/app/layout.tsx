@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { UIProvider } from "@/components/UIProvider";
-import Topbar from "@/components/Topbar";
-import Tabs from "@/components/Tabs";
 
 export const metadata: Metadata = {
   title: "Chisto — обслужване на обекти",
@@ -20,13 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="bg">
       <body className="antialiased">
-        <UIProvider>
-          <div id="app">
-            <Topbar />
-            <Tabs />
-            <div className="main">{children}</div>
-          </div>
-        </UIProvider>
+        <UIProvider>{children}</UIProvider>
       </body>
     </html>
   );

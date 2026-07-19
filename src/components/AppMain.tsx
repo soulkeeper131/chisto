@@ -7,6 +7,8 @@ import {
   STATUS_MAP, JOBSTATUS, isToday,
 } from "@/lib/data";
 import { useUI } from "@/components/UIProvider";
+import Topbar from "@/components/Topbar";
+import Tabs from "@/components/Tabs";
 import dynamic from "next/dynamic";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -16,22 +18,20 @@ export default function AppMain() {
   const role = useStore.getRole();
   const userId = useStore.getState().user;
 
-  if (tab === "map") {
-    return (
-      <>
-        <div id="mapwrap" className="on"><MapView /></div>
-        <div id="view" style={{ display: "none" }} />
-      </>
-    );
-  }
-
   return (
-    <>
-      <div id="mapwrap" />
-      <div id="view" className="pad">
-        <TabContent tab={tab} userId={userId} role={role} />
+    <div id="app">
+      <Topbar />
+      <Tabs />
+      <div className="main">
+        {tab === "map" ? (
+          <div id="mapwrap" className="on"><MapView /></div>
+        ) : (
+          <div id="view" className="pad">
+            <TabContent tab={tab} userId={userId} role={role} />
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
