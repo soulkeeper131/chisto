@@ -9,6 +9,50 @@ import "leaflet/dist/leaflet.css";
 
 const SOFIA: [number, number] = [42.6795, 23.33];
 
+// Inline add-property form component
+function AddPropertyForm({ onDone }: { onDone: () => void }) {
+  const [name, setName] = useState("");
+  const [addr, setAddr] = useState("");
+  const [type, setType] = useState("apartment");
+  const [access, setAccess] = useState("");
+  const { toast } = useUI();
+  
+  return (
+    <div className="card-pad">
+      <div style={{ marginBottom: 12 }}>
+        <label className="tiny strong" style={{ display: 'block', marginBottom: 4 }}>Име на обект</label>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder='напр. "Апартамент Център"' style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 15 }} />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label className="tiny strong" style={{ display: 'block', marginBottom: 4 }}>Адрес</label>
+        <input value={addr} onChange={e => setAddr(e.target.value)} placeholder="напр. ул. Цар Асен 25" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 15 }} />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label className="tiny strong" style={{ display: 'block', marginBottom: 4 }}>Тип</label>
+        <select value={type} onChange={e => setType(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 15, background: '#fff' }}>
+          <option value="apartment">🏢 Апартамент</option>
+          <option value="studio">🏠 Студио</option>
+          <option value="house">🏡 Къща</option>
+          <option value="office">🏬 Офис</option>
+          <option value="villa">🏰 Вила</option>
+        </select>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label className="tiny strong" style={{ display: 'block', marginBottom: 4 }}>Достъп (инструкции)</label>
+        <textarea value={access} onChange={e => setAccess(e.target.value)} placeholder="Ключ, код, паркинг..." rows={2} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 14, resize: 'vertical' }} />
+      </div>
+      <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={() => {
+        if (!name || !addr) { toast('Попълни име и адрес'); return; }
+        // In demo mode — just show success
+        toast(`✅ "${name}" е добавен (демо)`);
+        onDone();
+      }}>
+        ✅ Запази обект
+      </button>
+    </div>
+  );
+}
+
 export default function MapView() {
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -140,7 +184,20 @@ export default function MapView() {
         }} />
       </div>
       {canAdd && (
-        <button className={`map-btn ${addMode ? "act" : ""}`} onClick={() => setAddMode(!addMode)}>
+        <button className={`map-btn ${addMode ? "act" : ""}`} onClick={() => {
+          if (!addMode) {
+            setAddMode(true);
+            openSheet('Нов обект', 'Добави адрес и данни',
+              <AddPropertyForm onDone={() => { setAddMode(false); closeSheet(); }} />,
+              <div className="row" style={{ width: '100%' }}>
+                <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setAddMode(false); closeSheet(); }}>Отказ</button>
+              </div>
+            );
+          } else {
+            setAddMode(false);
+            closeSheet();
+          }
+        }}>
           {addMode ? "✕ Отказ" : "＋ Обект"}
         </button>
       )}

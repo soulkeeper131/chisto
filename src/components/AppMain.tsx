@@ -1,6 +1,6 @@
 "use client";
 // FORCE_REBUILD_3
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useStore } from "@/lib/store";
 import {
   USERS, PROPERTIES, TEMPLATES, TASKS, PLANS, FINDINGS, ISSUES,
@@ -142,18 +142,29 @@ function TaskSheetContent({ task }: { task: any }) {
   // Local state for checklist items (so checkboxes are interactive)
   const [items, setItems] = useState(task.items.map((i: any) => ({ ...i, photos: (i.photos||[]).map((p:any)=>({...p})) })));
   const [viewerImg, setViewerImg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   
   const toggleItem = (itemId: number) => {
     setItems(prev => prev.map(i => i.id === itemId ? { ...i, done: !i.done } : i));
   };
   
   const takePhoto = (itemId: number) => {
-    // Simulate taking a photo (demo — adds mock image)
-    const mockUrl = `https://placehold.co/400x300/0F766E/white?text=📷+${Date.now().toString(36)}`;
+    // Store which item we're taking a photo for
+    (fileRef.current as any)._itemId = itemId;
+    fileRef.current?.click();
+  };
+  
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const itemId = (fileRef.current as any)._itemId;
+    const url = URL.createObjectURL(file);
     setItems(prev => prev.map(i => i.id === itemId ? {
       ...i,
-      photos: [...(i.photos || []), { url: mockUrl, ts: Date.now() }]
+      photos: [...(i.photos || []), { url, ts: Date.now() }]
     } : i));
+    // Reset so same file can be picked again
+    e.target.value = '';
   };
   
   // Group items by zone
@@ -161,6 +172,10 @@ function TaskSheetContent({ task }: { task: any }) {
   
   return (
     <div>
+      {/* Hidden file input for camera/gallery */}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment"
+        style={{ display: 'none' }} onChange={handleFilePicked} />
+      
       {/* Image viewer overlay */}
       {viewerImg && (
         <div style={{
