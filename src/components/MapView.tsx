@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
-import { PROPERTIES, propStatus, STATUS_MAP } from "@/lib/data";
+import { PROPERTIES, myProps, propStatus, STATUS_MAP, TEMPLATES, TASKS, USERS, myJobs, isToday, JOBSTATUS } from "@/lib/data";
+import { useUI } from "@/components/UIProvider";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -14,6 +15,7 @@ export default function MapView() {
   const [addMode, setAddMode] = useState(false);
   const { user } = useStore();
   const role = useStore.getRole();
+  const { openSheet, closeSheet } = useUI();
 
   useEffect(() => {
     if (mapRef.current) return;
@@ -61,7 +63,47 @@ export default function MapView() {
       });
       marker.bindTooltip(p.name, { direction: "top", offset: [0, -30] });
       marker.on("click", () => {
-        // Will wire up to PropertySheet later
+        // Open property sheet
+        const pJobs = [...TASKS].filter(j => j.propertyId === p.id).sort((a, b) => b.plannedAt - a.plannedAt);
+        openSheet(
+          p.name,
+          p.addr,
+          <div>
+            <span className={`pill p-${cfg.c === 'gray' ? 'gray' : cfg.c}`}><span className="bullet" />{cfg.label}</span>
+            <div className="card card-pad" style={{ marginTop: 14, background: '#FFFBEB', borderColor: '#FDE68A' }}>
+              <div className="tiny strong" style={{ color: '#B45309', textTransform: 'uppercase', letterSpacing: '.05em' }}>Достъп</div>
+              <div className="small" style={{ marginTop: 6, lineHeight: 1.55 }}>{p.access}</div>
+            </div>
+            <div className="section-title">Зони</div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 7 }}>
+              {p.zones.map((z: string) => <span key={z} className="pill p-gray">{z}</span>)}
+            </div>
+            <div className="section-title">Задачи ({pJobs.length})</div>
+            <div className="card">
+              {pJobs.slice(0, 5).map(j => {
+                const tp = TEMPLATES.find(x => x.id === j.templateId);
+                const a = USERS.find(x => x.id === j.assigneeId);
+                const st = JOBSTATUS[j.status] || JOBSTATUS.planned;
+                return (
+                  <div key={j.id} className="lrow">
+                    <div className="lrow-ic" style={{ background: 'var(--accent-soft)' }}>{tp?.icon}</div>
+                    <div className="lrow-body">
+                      <div className="lrow-title">{tp?.name}</div>
+                      <div className="lrow-sub">{new Date(j.plannedAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' })}, {new Date(j.plannedAt).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })} · {a?.name}</div>
+                    </div>
+                    <span className={`pill ${st.p}`}>{st.t}</span>
+                  </div>
+                );
+              })}
+              {pJobs.length === 0 && <div style={{ padding: 16 }} className="small muted">Няма задачи</div>}
+            </div>
+          </div>,
+          <div className="row" style={{ width: '100%' }}>
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => {
+              window.open(`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=18/${p.lat}/${p.lng}`, '_blank');
+            }}>🧭 Навигация</button>
+          </div>
+        );
       });
       marker.addTo(layer);
 
