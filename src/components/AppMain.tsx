@@ -140,10 +140,20 @@ function TaskSheetContent({ task }: { task: any }) {
   const t = TEMPLATES.find(x => x.id === task.templateId);
   
   // Local state for checklist items (so checkboxes are interactive)
-  const [items, setItems] = useState(task.items.map((i: any) => ({ ...i })));
+  const [items, setItems] = useState(task.items.map((i: any) => ({ ...i, photos: (i.photos||[]).map((p:any)=>({...p})) })));
+  const [viewerImg, setViewerImg] = useState<string | null>(null);
   
   const toggleItem = (itemId: number) => {
     setItems(prev => prev.map(i => i.id === itemId ? { ...i, done: !i.done } : i));
+  };
+  
+  const takePhoto = (itemId: number) => {
+    // Simulate taking a photo (demo — adds mock image)
+    const mockUrl = `https://placehold.co/400x300/0F766E/white?text=📷+${Date.now().toString(36)}`;
+    setItems(prev => prev.map(i => i.id === itemId ? {
+      ...i,
+      photos: [...(i.photos || []), { url: mockUrl, ts: Date.now() }]
+    } : i));
   };
   
   // Group items by zone
@@ -151,6 +161,21 @@ function TaskSheetContent({ task }: { task: any }) {
   
   return (
     <div>
+      {/* Image viewer overlay */}
+      {viewerImg && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.92)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setViewerImg(null)}>
+          <img src={viewerImg} style={{ maxWidth: '94vw', maxHeight: '94dvh', borderRadius: 12, objectFit: 'contain' }} alt="" />
+          <button style={{
+            position: 'absolute', top: 16, right: 16, width: 36, height: 36,
+            borderRadius: '50%', background: 'rgba(255,255,255,.15)', color: '#fff',
+            border: 'none', fontSize: 20, cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }} onClick={(e) => { e.stopPropagation(); setViewerImg(null); }}>✕</button>
+        </div>
+      )}
+
       <div className="card card-pad" style={{ background: '#FFFBEB', borderColor: '#FDE68A', marginBottom: 8 }}>
         <div className="tiny strong" style={{ color: '#B45309', textTransform: 'uppercase', letterSpacing: '.05em' }}>Достъп</div>
         <div className="small" style={{ marginTop: 5, lineHeight: 1.5 }}>{p?.access || '—'}</div>
@@ -173,14 +198,20 @@ function TaskSheetContent({ task }: { task: any }) {
                   <div className="chk-txt">{i.text}</div>
                   <div className="chk-meta">
                     {i.req && <span className="req">ЗАДЪЛЖИТЕЛНО</span>}
-                    {i.proof === 'photo' && <span className="cam">📷 {i.photos?.length ? 'Още' : 'Снимка'}</span>}
+                    {i.proof === 'photo' && (
+                      <span className="cam" style={{ cursor: 'pointer' }} onClick={() => takePhoto(i.id)}>
+                        📷 {i.photos?.length ? 'Още' : 'Снимка'}
+                      </span>
+                    )}
                     {i.proof === 'count' && <span className="cam">Брой: {i.count ?? '—'}</span>}
                     {i.proof === 'note' && i.note && <span className="cam">{i.note}</span>}
                   </div>
                   {i.photos?.length > 0 && (
                     <div className="thumbs">
                       {i.photos.map((ph: any, pi: number) => (
-                        <img key={pi} className="thumb" src={ph.url} alt="" />
+                        <img key={pi} className="thumb" src={ph.url} alt=""
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setViewerImg(ph.url)} />
                       ))}
                     </div>
                   )}
