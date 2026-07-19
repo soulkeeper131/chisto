@@ -13,8 +13,8 @@ export default function MapView() {
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const [addMode, setAddMode] = useState(false);
-  const { user } = useStore();
-  const role = useStore.getRole();
+  const user = useStore(s => s.user);
+  const role = useStore(s => s.getRole)();
   const { openSheet, closeSheet } = useUI();
 
   useEffect(() => {

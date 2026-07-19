@@ -14,9 +14,9 @@ import dynamic from "next/dynamic";
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 export default function AppMain() {
-  const { tab } = useStore();
-  const role = useStore.getRole();
-  const userId = useStore.getState().user;
+  const tab = useStore(s => s.tab);
+  const role = useStore(s => s.getRole)();
+  const userId = useStore(s => s.user);
 
   return (
     <div id="app">
