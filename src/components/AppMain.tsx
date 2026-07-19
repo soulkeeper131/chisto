@@ -229,6 +229,7 @@ function TaskSheetContent({ task }: { task: any }) {
 function JobsView({ userId }: { userId: string }) {
   const js = [...TASKS].sort((a, b) => b.plannedAt - a.plannedAt);
   const t = js.filter(j => isToday(j.plannedAt));
+  const { openSheet } = useUI();
 
   return (
     <>
@@ -243,7 +244,11 @@ function JobsView({ userId }: { userId: string }) {
         const p = PROPERTIES.find(x => x.id === is.propertyId);
         const u = USERS.find(x => x.id === is.reportedById);
         return (
-          <div key={is.id} className="card card-pad" style={{ borderLeft: '3px solid var(--s-red)', marginTop: 12 }}>
+          <div key={is.id} className="card card-pad" style={{ borderLeft: '3px solid var(--s-red)', marginTop: 12, cursor: 'pointer' }}
+            onClick={() => {
+              const pp = PROPERTIES.find(x => x.id === is.propertyId);
+              openSheet(pp?.name || 'Проблем', is.text, <div className="card-pad"><p className="small">{is.text}</p><p className="tiny muted">{u?.name} · {new Date(is.ts).toLocaleString('bg-BG')}</p></div>);
+            }}>
             <div className="row"><div className="lrow-ic" style={{ background: '#FEF2F2' }}>⚠️</div>
               <div className="col"><div className="strong small">{p?.name}</div>
                 <div className="small">{is.text}</div>
@@ -262,7 +267,21 @@ function JobsView({ userId }: { userId: string }) {
           const st = JOBSTATUS[j.status] || JOBSTATUS.planned;
           const tr = trustScore(j);
           return (
-            <div key={j.id} className="lrow">
+            <div key={j.id} className="lrow" style={{ cursor: 'pointer' }}
+              onClick={() => {
+                const prop = PROPERTIES.find(x => x.id === j.propertyId);
+                const templ = TEMPLATES.find(x => x.id === j.templateId);
+                openSheet(
+                  prop?.name || 'Задача',
+                  `${templ?.icon || ''} ${templ?.name || ''} · ${new Date(j.plannedAt).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })}`,
+                  <TaskSheetContent task={j} />,
+                  <div className="row" style={{ width: '100%' }}>
+                    <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => {
+                      window.open(`https://www.openstreetmap.org/?mlat=${prop?.lat}&mlon=${prop?.lng}#map=18/${prop?.lat}/${prop?.lng}`, '_blank');
+                    }}>🧭 Навигация</button>
+                  </div>
+                );
+              }}>
               <div className="lrow-ic" style={{ background: 'var(--accent-soft)' }}>{tpl?.icon}</div>
               <div className="lrow-body">
                 <div className="lrow-title">{p?.name}</div>
@@ -282,6 +301,7 @@ function JobsView({ userId }: { userId: string }) {
 function PropsView({ userId }: { userId: string }) {
   const ps = myProps(userId);
   const ICON: Record<string, string> = { apartment: '🏢', studio: '🏠', house: '🏡', office: '🏬', villa: '🏰' };
+  const { openSheet } = useUI();
   return (
     <>
       <div className="section-title">{ps.length} обекта</div>
@@ -289,7 +309,48 @@ function PropsView({ userId }: { userId: string }) {
         {ps.map(p => {
           const st = propStatus(p.id, userId); const cfg = STATUS_MAP[st] || STATUS_MAP.none;
           return (
-            <div key={p.id} className="lrow">
+            <div key={p.id} className="lrow" style={{ cursor: 'pointer' }}
+              onClick={() => {
+                const pJobs = [...TASKS].filter(j => j.propertyId === p.id).sort((a, b) => b.plannedAt - a.plannedAt);
+                openSheet(
+                  p.name, p.addr,
+                  <div>
+                    <span className={`pill p-${cfg.c === 'gray' ? 'gray' : cfg.c}`}><span className="bullet" />{cfg.label}</span>
+                    <div className="card card-pad" style={{ marginTop: 14, background: '#FFFBEB', borderColor: '#FDE68A' }}>
+                      <div className="tiny strong" style={{ color: '#B45309', textTransform: 'uppercase', letterSpacing: '.05em' }}>Достъп</div>
+                      <div className="small" style={{ marginTop: 6, lineHeight: 1.55 }}>{p.access}</div>
+                    </div>
+                    <div className="section-title">Зони</div>
+                    <div className="row" style={{ flexWrap: 'wrap', gap: 7 }}>
+                      {p.zones.map((z: string) => <span key={z} className="pill p-gray">{z}</span>)}
+                    </div>
+                    <div className="section-title">Задачи ({pJobs.length})</div>
+                    <div className="card">
+                      {pJobs.slice(0, 5).map(j => {
+                        const tp = TEMPLATES.find(x => x.id === j.templateId);
+                        const a = USERS.find(x => x.id === j.assigneeId);
+                        const st2 = JOBSTATUS[j.status] || JOBSTATUS.planned;
+                        return (
+                          <div key={j.id} className="lrow">
+                            <div className="lrow-ic" style={{ background: 'var(--accent-soft)' }}>{tp?.icon}</div>
+                            <div className="lrow-body">
+                              <div className="lrow-title">{tp?.name}</div>
+                              <div className="lrow-sub">{new Date(j.plannedAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' })}, {new Date(j.plannedAt).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })} · {a?.name}</div>
+                            </div>
+                            <span className={`pill ${st2.p}`}>{st2.t}</span>
+                          </div>
+                        );
+                      })}
+                      {pJobs.length === 0 && <div style={{ padding: 16 }} className="small muted">Няма задачи</div>}
+                    </div>
+                  </div>,
+                  <div className="row" style={{ width: '100%' }}>
+                    <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => {
+                      window.open(`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=18/${p.lat}/${p.lng}`, '_blank');
+                    }}>🧭 Навигация</button>
+                  </div>
+                );
+              }}>
               <div className="lrow-ic" style={{ background: 'var(--line-2)' }}>{ICON[p.type] || '🏠'}</div>
               <div className="lrow-body"><div className="lrow-title">{p.name}</div><div className="lrow-sub">{p.addr}</div></div>
               <span className={`pill p-${cfg.c === 'gray' ? 'gray' : cfg.c}`}><span className="bullet" />{cfg.label}</span>
@@ -365,6 +426,7 @@ function PlansView({ userId }: { userId: string }) {
 
 function FixView({ userId, role }: { userId: string; role: string }) {
   const fs = myFindings(userId);
+  const { openSheet } = useUI();
   const FSTATUS: Record<string, { p: string; t: string; ic: string }> = {
     reported: { p: 'p-amber', t: 'Чака решение', ic: '⏳' },
     quoted: { p: 'p-blue', t: 'Оферта', ic: '📄' },
@@ -383,7 +445,16 @@ function FixView({ userId, role }: { userId: string; role: string }) {
         {fs.map(f => {
           const st = FSTATUS[f.status]; const p = PROPERTIES.find(x => x.id === f.propertyId);
           return (
-            <div key={f.id} className="lrow">
+            <div key={f.id} className="lrow" style={{ cursor: 'pointer' }}
+              onClick={() => openSheet(f.title, p?.name || '', 
+                <div className="card-pad">
+                  <span className={`pill ${st.p}`}>{st.t}</span>
+                  <div className="strong" style={{ marginTop: 12 }}>{f.title}</div>
+                  <div className="small muted" style={{ marginTop: 6 }}>{f.desc}</div>
+                  <div className="tiny muted" style={{ marginTop: 10 }}>{p?.name} · {new Date(f.ts).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                  {f.photos?.length > 0 && <div className="thumbs">{f.photos.map((ph: any, pi: number) => <img key={pi} className="thumb" src={ph} alt="" />)}</div>}
+                </div>
+              )}>
               <div className="lrow-ic">{st.ic}</div>
               <div className="lrow-body"><div className="lrow-title">{f.title}</div><div className="lrow-sub">{p?.name} · {new Date(f.ts).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' })}</div></div>
               <span className={`pill ${st.p}`}>{st.t}</span>
@@ -397,6 +468,7 @@ function FixView({ userId, role }: { userId: string; role: string }) {
 
 function ReportsView({ userId }: { userId: string }) {
   const js = myJobs(userId).filter(j => j.status !== 'planned' && j.status !== 'in_progress').sort((a, b) => (b.checkOut || b.plannedAt) - (a.checkOut || a.plannedAt));
+  const { openSheet } = useUI();
   return (
     <>
       <div className="section-title">История</div>
@@ -406,7 +478,10 @@ function ReportsView({ userId }: { userId: string }) {
           const tpl = TEMPLATES.find(x => x.id === j.templateId);
           const st = JOBSTATUS[j.status] || JOBSTATUS.planned;
           return (
-            <div key={j.id} className="lrow">
+            <div key={j.id} className="lrow" style={{ cursor: 'pointer' }}
+              onClick={() => {
+                openSheet(p?.name || 'Задача', `${tpl?.icon || ''} ${tpl?.name || ''}`, <TaskSheetContent task={j} />);
+              }}>
               <div className="lrow-ic" style={{ background: 'var(--accent-soft)' }}>{tpl?.icon}</div>
               <div className="lrow-body"><div className="lrow-title">{p?.name}</div><div className="lrow-sub">{new Date(j.checkOut || j.plannedAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' })}</div></div>
               <span className={`pill ${st.p}`}>{st.t}</span>
@@ -422,6 +497,7 @@ function HistView({ userId }: { userId: string }) {
   const js = myJobs(userId).filter(j => j.status !== 'planned').sort((a, b) => (b.checkOut || b.plannedAt) - (a.checkOut || a.plannedAt));
   const scores = js.map(trustScore).filter(Boolean).map(t => t!.score);
   const avg = scores.length ? Math.round(scores.reduce((s, x) => s + x, 0) / scores.length) : null;
+  const { openSheet } = useUI();
   return (
     <>
       <div className="stats">
@@ -435,7 +511,10 @@ function HistView({ userId }: { userId: string }) {
           const tpl = TEMPLATES.find(x => x.id === j.templateId);
           const tr = trustScore(j);
           return (
-            <div key={j.id} className="lrow">
+            <div key={j.id} className="lrow" style={{ cursor: 'pointer' }}
+              onClick={() => {
+                openSheet(p?.name || 'Задача', `${tpl?.icon || ''} ${tpl?.name || ''}`, <TaskSheetContent task={j} />);
+              }}>
               <div className="lrow-ic" style={{ background: 'var(--accent-soft)' }}>{tpl?.icon}</div>
               <div className="lrow-body"><div className="lrow-title">{p?.name}</div><div className="lrow-sub">{new Date(j.checkOut || j.plannedAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' })}</div></div>
               {tr && <span className={`pill ${tr.score >= 85 ? 'p-green' : tr.score >= 60 ? 'p-amber' : 'p-red'}`}>{tr.score}</span>}
