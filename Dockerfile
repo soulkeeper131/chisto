@@ -16,4 +16,4 @@ RUN npx drizzle-kit push
 RUN npm run build
 
 EXPOSE 3000
-CMD ["node", ".next/standalone/server.js"]
+CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
