@@ -142,28 +142,40 @@ function TaskSheetContent({ task }: { task: any }) {
   // Local state for checklist items (so checkboxes are interactive)
   const [items, setItems] = useState(task.items.map((i: any) => ({ ...i, photos: (i.photos||[]).map((p:any)=>({...p})) })));
   const [viewerImg, setViewerImg] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [photoMenuFor, setPhotoMenuFor] = useState<number | null>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const pendingItemRef = useRef<number>(0);
   
   const toggleItem = (itemId: number) => {
     setItems(prev => prev.map(i => i.id === itemId ? { ...i, done: !i.done } : i));
   };
   
-  const takePhoto = (itemId: number) => {
-    // Store which item we're taking a photo for
-    (fileRef.current as any)._itemId = itemId;
-    fileRef.current?.click();
+  const openPhotoMenu = (itemId: number) => {
+    setPhotoMenuFor(itemId);
+  };
+  
+  const takeCamera = () => {
+    pendingItemRef.current = photoMenuFor!;
+    setPhotoMenuFor(null);
+    cameraRef.current?.click();
+  };
+  
+  const pickGallery = () => {
+    pendingItemRef.current = photoMenuFor!;
+    setPhotoMenuFor(null);
+    galleryRef.current?.click();
   };
   
   const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const itemId = (fileRef.current as any)._itemId;
+    const itemId = pendingItemRef.current;
     const url = URL.createObjectURL(file);
     setItems(prev => prev.map(i => i.id === itemId ? {
       ...i,
       photos: [...(i.photos || []), { url, ts: Date.now() }]
     } : i));
-    // Reset so same file can be picked again
     e.target.value = '';
   };
   
@@ -172,8 +184,10 @@ function TaskSheetContent({ task }: { task: any }) {
   
   return (
     <div>
-      {/* Hidden file input for camera/gallery */}
-      <input ref={fileRef} type="file" accept="image/*" capture="environment"
+      {/* Hidden file inputs — camera (capture) and gallery (no capture) */}
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+        style={{ display: 'none' }} onChange={handleFilePicked} />
+      <input ref={galleryRef} type="file" accept="image/*"
         style={{ display: 'none' }} onChange={handleFilePicked} />
       
       {/* Image viewer overlay */}
@@ -188,6 +202,36 @@ function TaskSheetContent({ task }: { task: any }) {
             borderRadius: '50%', background: 'rgba(255,255,255,.15)', color: '#fff',
             border: 'none', fontSize: 20, cursor: 'pointer', display: 'grid', placeItems: 'center',
           }} onClick={(e) => { e.stopPropagation(); setViewerImg(null); }}>✕</button>
+        </div>
+      )}
+
+      {/* Photo source menu — 📸 camera or 🖼️ gallery */}
+      {photoMenuFor !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,.45)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }} onClick={() => setPhotoMenuFor(null)}>
+          <div style={{
+            width: '100%', maxWidth: 420, background: '#fff', borderRadius: '20px 20px 0 0',
+            padding: '20px 16px 30px', display: 'flex', gap: 12, flexWrap: 'wrap',
+          }} onClick={e => e.stopPropagation()}>
+            <button style={{
+              flex: 1, minWidth: 140, padding: '16px 12px', borderRadius: 14,
+              border: '2px solid var(--line-2)', background: '#fff',
+              fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }} onClick={takeCamera}>
+              <span style={{ fontSize: 24 }}>📸</span> Снимай
+            </button>
+            <button style={{
+              flex: 1, minWidth: 140, padding: '16px 12px', borderRadius: 14,
+              border: '2px solid var(--line-2)', background: '#fff',
+              fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }} onClick={pickGallery}>
+              <span style={{ fontSize: 24 }}>🖼️</span> От галерия
+            </button>
+          </div>
         </div>
       )}
 
@@ -214,7 +258,7 @@ function TaskSheetContent({ task }: { task: any }) {
                   <div className="chk-meta">
                     {i.req && <span className="req">ЗАДЪЛЖИТЕЛНО</span>}
                     {i.proof === 'photo' && (
-                      <span className="cam" style={{ cursor: 'pointer' }} onClick={() => takePhoto(i.id)}>
+                      <span className="cam" style={{ cursor: 'pointer' }} onClick={() => openPhotoMenu(i.id)}>
                         📷 {i.photos?.length ? 'Още' : 'Снимка'}
                       </span>
                     )}
