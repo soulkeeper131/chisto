@@ -1,6 +1,7 @@
 "use client";
 // FORCE_REBUILD_3
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useStore } from "@/lib/store";
 import {
   USERS, PROPERTIES, TEMPLATES, TASKS, PLANS, FINDINGS, ISSUES,
@@ -205,8 +206,8 @@ function TaskSheetContent({ task }: { task: any }) {
         </div>
       )}
 
-      {/* Photo source menu — 📸 camera or 🖼️ gallery */}
-      {photoMenuFor !== null && (
+      {/* Photo source menu — 📸 camera or 🖼️ gallery (portal to body to escape sheet stacking context) */}
+      {photoMenuFor !== null && createPortal(
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,.45)',
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -232,7 +233,8 @@ function TaskSheetContent({ task }: { task: any }) {
               <span style={{ fontSize: 24 }}>🖼️</span> От галерия
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="card card-pad" style={{ background: '#FFFBEB', borderColor: '#FDE68A', marginBottom: 8 }}>
