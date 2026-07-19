@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/lib/store";
 import {
   USERS, PROPERTIES, TEMPLATES, TASKS, PLANS, FINDINGS, ISSUES,
@@ -138,8 +139,15 @@ function TaskSheetContent({ task }: { task: any }) {
   const p = PROPERTIES.find(x => x.id === task.propertyId);
   const t = TEMPLATES.find(x => x.id === task.templateId);
   
+  // Local state for checklist items (so checkboxes are interactive)
+  const [items, setItems] = useState(task.items.map((i: any) => ({ ...i })));
+  
+  const toggleItem = (itemId: number) => {
+    setItems(prev => prev.map(i => i.id === itemId ? { ...i, done: !i.done } : i));
+  };
+  
   // Group items by zone
-  const zones = [...new Set(task.items.map((i: any) => i.zone))] as string[];
+  const zones = [...new Set(items.map((i: any) => i.zone))] as string[];
   
   return (
     <div>
@@ -149,18 +157,18 @@ function TaskSheetContent({ task }: { task: any }) {
       </div>
 
       {zones.map(z => {
-        const items = task.items.filter((i: any) => i.zone === z);
-        const done = items.filter((i: any) => i.done).length;
+        const zoneItems = items.filter((i: any) => i.zone === z);
+        const done = zoneItems.filter((i: any) => i.done).length;
         return (
           <div key={z}>
             <div className="zone-h">
-              <div className="zi">{done === items.length ? '✓' : '○'}</div>
+              <div className="zi">{done === zoneItems.length ? '✓' : '○'}</div>
               {z}
-              <span className="zc">{done}/{items.length}</span>
+              <span className="zc">{done}/{zoneItems.length}</span>
             </div>
-            {items.map((i: any) => (
+            {zoneItems.map((i: any) => (
               <div key={i.id} className={`chk ${i.done ? 'done' : ''}`}>
-                <button className="box" disabled>{i.done ? '✓' : ''}</button>
+                <button className="box" onClick={() => toggleItem(i.id)}>{i.done ? '✓' : ''}</button>
                 <div className="chk-body">
                   <div className="chk-txt">{i.text}</div>
                   <div className="chk-meta">
